@@ -40,7 +40,8 @@ public class Server
     private static void SetUpConfiguration(Action<Configuration>? configure)
     {
         if (configure is null) return;
-        // TODO: Implement configuration customation
+
+        configure(_configuration);
     }
 
     private static IPAddress[] GetLocalHostIPs()
