@@ -13,9 +13,11 @@ public class Server
 
     private readonly ILogger<Server> _logger;
 
-    public Server(ILogger<Server> logger)
+    public Server()
     {
-        _logger = logger;
+        _logger = LoggerFactory.Create(builder => {
+            builder.AddConsole();
+        }).CreateLogger<Server>();
     }
 
     public void Start(Action<Configuration>? configure)

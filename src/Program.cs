@@ -1,14 +1,9 @@
 ﻿using Webserver;
-using Microsoft.Extensions.Logging;
 
-ILogger<Server> logger = LoggerFactory.Create(builder => {
-    builder.AddConsole();
-}).CreateLogger<Server>();
-
-Server server = new(logger);
+Server server = new();
 
 server.Start(config => {
-    config.StaticFilePath = "static/index.html";
+    config.StaticFilePath = "wwwroot";
 });
 
 Console.ReadLine();

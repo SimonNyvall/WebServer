@@ -4,8 +4,9 @@ using System.IO;
 using System.Net;
 using System.Text;
 using Webserver.Models;
+using Microsoft.Extensions.Logging;
 
-public class Router(string webSitePath)
+public class Router
 {
     private Dictionary<string, ExtensionInfo> _extensionMap = new()
     {
@@ -20,28 +21,68 @@ public class Router(string webSitePath)
         {"", new ExtensionInfo() {Loader=LoadType.PageLoader, ContentType="text/html"}},
     };
 
+    private readonly string _webSitePath = string.Empty;
+
+    private readonly ILogger<Router> _logger;
+
+    public Router(string webSitePath)
+    {
+        _webSitePath = webSitePath;
+
+        _logger = LoggerFactory.Create(builder => {
+            builder.AddConsole();
+        }).CreateLogger<Router>();
+    }
+
     public ResponsePacket RouteRequest(string path)
     {
         if (path.EndsWith('/')) path = "index.html";
 
-        string extension = path.Split('.')[^1];
+        string extension = GetExtension(path);
+
+        (bool success, ExtensionInfo data) extensionInfo = TryGetExtensionInfo(extension);
 
         ResponsePacket responsePacket = ResponsePacket.BadRequest();
 
-        if (_extensionMap.TryGetValue(extension, out ExtensionInfo extensionInfo))
-        {
-            string fullPath = Path.Combine(webSitePath, path.Replace("/", string.Empty));
+        if (!extensionInfo.success) return responsePacket;
 
-            responsePacket = extensionInfo.Loader switch
-            {
-                LoadType.ImageLoader => ImageLoader(fullPath, extensionInfo),
-                LoadType.FileLoader => FileLoader(fullPath, extensionInfo),
-                LoadType.PageLoader => PageLoader(fullPath, extensionInfo),
-                _ => responsePacket
-            };
-        }
+        string fullPath = Path.Combine(_webSitePath, path.Replace("/", string.Empty));
+
+        _logger.LogInformation("Routing request for {fullPath}", fullPath);
+
+        responsePacket = extensionInfo.data.Loader switch
+        {
+            LoadType.ImageLoader => ImageLoader(fullPath, extensionInfo.data),
+            LoadType.FileLoader => FileLoader(fullPath, extensionInfo.data),
+            LoadType.PageLoader => PageLoader(fullPath, extensionInfo.data),
+            _ => responsePacket
+        };
 
         return responsePacket;
+    }
+
+    private string GetExtension(string path)
+    {
+        try
+        {
+            return path.Split('.')[^1];
+        }
+        catch (IndexOutOfRangeException)
+        {
+            _logger.LogCritical("Failed to get extension for {path}", path);
+            return string.Empty;
+        }
+    }
+
+    private (bool success, ExtensionInfo data) TryGetExtensionInfo(string extension)
+    {
+        if (!_extensionMap.TryGetValue(extension, out ExtensionInfo extensionInfo))
+        {
+            _logger.LogCritical("Failed to get extension info for {extension}", extension);
+            return (false, new ExtensionInfo());
+        }
+
+        return (true, extensionInfo);
     }
 
     private ResponsePacket ImageLoader(string path, ExtensionInfo extensionInfo)
