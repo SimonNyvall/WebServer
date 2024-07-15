@@ -54,7 +54,7 @@ public class Server
     {
         HttpListener listener = new();
 
-        int port = _configuration.DefaultPort;
+        int port = _configuration.Port;
 
         listener.Prefixes.Add($"http://localhost:{port}/");
 
