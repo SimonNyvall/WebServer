@@ -1,0 +1,59 @@
+html, body {
+    background-color: black;
+    color: white;
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    font-size: 6em;
+    margin: 10px;
+}
+
+p {
+    font-size: 1.5em;
+    margin: 10px;
+}
+
+.container {
+    margin-top: 50vh;
+    transform: translateY(-50%);
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 900px;
+}
+
+.highlight {
+    background: linear-gradient(to right, blue, pink);
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.paragraph {
+    margin-top: 40px;
+    color: darkgray;
+    padding-bottom: 20px;
+}
+
+.buttons {
+    margin-top: 20px;
+}
+
+.button {
+    background-color: #000;
+    border: 2px solid #33658A;
+    color: white;
+    padding: 15px 20px;
+    margin: 10px;
+    text-decoration: none;
+    font-weight: bolder;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 1.5em;
+}
+
+.github {
+    background-color: #33658A;
+}
