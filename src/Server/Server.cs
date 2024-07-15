@@ -2,9 +2,9 @@ namespace Webserver;
 
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Webserver.Models;
 
 public class Server
 {
@@ -18,9 +18,11 @@ public class Server
         _logger = logger;
     }
 
-    public async Task Start(Action<Configuration>? configure)
+    public void Start(Action<Configuration>? configure)
     {
         SetUpConfiguration(configure);
+
+        Router router = new(_configuration.StaticFilePath);
 
         IPAddress[] localhostIPs = GetLocalHostIPs();
         HttpListener listener = GetInitializedListener(localhostIPs);
@@ -30,27 +32,13 @@ public class Server
         listener.Start();
         _logger.LogInformation("Server started");
 
-        string html = await GetHtmlContent(_configuration.HtmlPath);
-
-        _ = Task.Run(() => RunServer(listener, html));
+        _ = Task.Run(() => RunServer(listener, router));
     }
 
     private static void SetUpConfiguration(Action<Configuration>? configure)
     {
         if (configure is null) return;
         // TODO: Implement configuration customation
-    }
-
-    private async Task<string> GetHtmlContent(string htmlPath)
-    {
-        if (!File.Exists(htmlPath))
-        {
-            _logger.LogError("File {htmlPath} not found", htmlPath);
-
-            return _configuration.DefaultHtml;
-        }
-
-        return await File.ReadAllTextAsync(htmlPath);
     }
 
     private static IPAddress[] GetLocalHostIPs()
@@ -70,34 +58,42 @@ public class Server
 
         foreach (IPAddress ip in localhostIPs)
         {
-            _logger.LogInformation("Listening on {ip}", ip);
-            listener.Prefixes.Add($"http://{ip}/");
+            _logger.LogInformation("Listening on {ip}:{port}", ip, port);
+            listener.Prefixes.Add($"http://{ip}:{port}/");
         }
 
         return listener;
     }
 
-    private static async Task RunServer(HttpListener listener, string html)
+    private async Task RunServer(HttpListener listener, Router router)
     {
         while (true)
         {
             _semaphore ??= new Semaphore(_configuration.MaxSimultaneousConnections, _configuration.MaxSimultaneousConnections);
 
             _semaphore.WaitOne();
-            await StartConnectionListener(listener, html);
+            await StartConnectionListener(listener, router);
         }
     }
 
-    private static async Task StartConnectionListener(HttpListener listener, string html)
+    private async Task StartConnectionListener(HttpListener listener, Router router)
     {
         HttpListenerContext context = await listener.GetContextAsync();
 
         _semaphore!.Release();
 
-        byte[] buffer = Encoding.UTF8.GetBytes(html);
+        string path = (context.Request.Url ?? new Uri("http://localhost")).LocalPath;
+
+        ResponsePacket? responsePacket = router.RouteRequest(path);
         
-        context.Response.ContentLength64 = buffer.Length;
-        context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-        context.Response.Close();
+        if (responsePacket is not null)
+        {
+            router.OKRespond(context.Response, responsePacket);
+        }
+        else
+        {
+            _logger.LogWarning("Not Found: {path}", path);
+            router.ErrorRespond(context.Response, HttpStatusCode.NotFound, "Not Found");
+        }
     }
 }

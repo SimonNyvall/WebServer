@@ -7,8 +7,8 @@ ILogger<Server> logger = LoggerFactory.Create(builder => {
 
 Server server = new(logger);
 
-await server.Start(config => {
-    config.HtmlPath = "static/index.html";
+server.Start(config => {
+    config.StaticFilePath = "static/index.html";
 });
 
 Console.ReadLine();
