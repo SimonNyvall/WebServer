@@ -9,14 +9,14 @@
 <hr/>
 </div>
 
-## Features
+## Features ✨
 
 - Serves static files (HTML, CSS, JavaScript, images)
 - Routes requests based on file extensions
 - Handles default document (e.g., `index.html` for root requests)
 - Basic logging using Microsoft.Extensions.Logging
 
-## Getting Started
+## Getting Started 🚀
 
 ### Prerequisites
 
@@ -35,21 +35,22 @@ $ git clone https://github.com/yourusername/webserver-project.git && cd webserve
 $ dotnet run
 ```
 
-The server will start and listen on a non-privileged port (e.g., 8080). You can access it by navigating to http://localhost:8080 in your web browser.
+The server will start and listen on a non-privileged port (e.g., 6001). You can access it by navigating to http://localhost:6001 in your web browser.
 
 Directory Structure
 
-    Webserver/
-        Models/
+    `Webserver/`
+        `Models/`
             Contains models used by the server
-        wwwroot/
+        `wwwroot/`
             Contains static files to be served (HTML, CSS, JS, images)
-        Program.cs
+        `Program.cs`
             Entry point of the application
-        Server.cs
-            Contains the server logic
-        Router.cs
-            Contains the routing logic
+        `Server/`
+            `Server.cs`
+                Contains the server logic
+            `Router.cs`
+                Contains the routing logic
 
 Sample HTML
 
@@ -83,13 +84,12 @@ Here is a sample HTML file (index.html) to be placed in the wwwroot/ directory:
 </html>
 ```
 
-## Future Plans
-
-    Transform the project into a .NET template
-    Add support for dynamic content
-    Implement more advanced routing
-    Add middleware support (e.g., for authentication)
-    Improve error handling
+## Future Plans 📈
+- Transform the project into a .NET template
+- Add support for dynamic content
+- Implement more advanced routing
+- Add middleware support (e.g., for authentication)
+- Improve error handling
 
 ## Contributing
 
