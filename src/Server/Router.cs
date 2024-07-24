@@ -44,7 +44,10 @@ public class Router
 
         ResponsePacket responsePacket = ResponsePacket.BadRequest();
 
-        if (!extensionInfo.success) return responsePacket;
+        if (!extensionInfo.success)
+        {
+            responsePacket = new ResponsePacket() { Status = Status.UnkownType };
+        }
 
         string fullPath = Path.Combine(_webSitePath, path.Replace("/", string.Empty));
 
@@ -125,14 +128,11 @@ public class Router
         output.Close();
     }
 
-    public void ErrorRespond(HttpListenerResponse response, HttpStatusCode statusCode, string message)
+    public void ErrorRespond(HttpListenerResponse response, ResponsePacket responsePacket)
     {
-        response.StatusCode = (int)statusCode;
-        byte[] buffer = Encoding.UTF8.GetBytes(message);
-        response.ContentLength64 = buffer.Length;
+        response.Redirect($"http://{responsePacket.Redirect}"); // TODO: fetch the ip and check for https
 
         Stream output = response.OutputStream;
-        output.Write(buffer, 0, buffer.Length);
 
         output.Close();
     }

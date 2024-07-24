@@ -6,6 +6,8 @@ public class ResponsePacket
 {
     public byte[] Data { get; set; } = [];
     public string ContentType { get; set; } = string.Empty;
+    public Status Status { get; set; } = Status.OK;
+    public string Redirect { get; set; } = string.Empty;
 
     public static ResponsePacket BadRequest()
     {

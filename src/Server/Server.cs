@@ -87,16 +87,31 @@ public class Server
 
         string path = (context.Request.Url ?? new Uri("http://localhost")).LocalPath;
 
-        ResponsePacket? responsePacket = router.RouteRequest(path);
+        ResponsePacket responsePacket = router.RouteRequest(path);
+
+        if (responsePacket.Status != Status.OK)
+        {
+            string pagePath = GetErrorPageRedirectPath(responsePacket.Status);
+            responsePacket.Redirect = pagePath;
+
+            _logger.LogCritical("Error: {statusCode} {pagePath}", responsePacket.Status, pagePath);
+            router.ErrorRespond(context.Response, responsePacket);
+        }
         
-        if (responsePacket is not null)
+        router.OKRespond(context.Response, responsePacket);
+    }
+
+    private string GetErrorPageRedirectPath(Status errorType)
+    {
+        return errorType switch
         {
-            router.OKRespond(context.Response, responsePacket);
-        }
-        else
-        {
-            _logger.LogWarning("Not Found: {path}", path);
-            router.ErrorRespond(context.Response, HttpStatusCode.NotFound, "Not Found");
-        }
+            Status.ExpiredSession => "/ErrorPages/ExpiredSession.html",
+            Status.NotAuthorized =>  "/ErrorPages/NotAuthorized.html",
+            Status.FileNotFound =>   "/ErrorPages/FileNotFound.html",
+            Status.PageNotFound =>   "/ErrorPages/PageNotFound.html",
+            Status.ServerError =>    "/ErrorPages/ServerError.html",
+            Status.UnkownType =>     "/ErrorPages/UnkownType.html",
+            _ => throw new NotImplementedException("Failed to map redirect path")
+        };
     }
 }
