@@ -24,13 +24,11 @@ public class ServerTestHelper : IDisposable
     private bool _disposed = false;
     private Process? _serverProcess;
 
-    public ServerTestHelper() => StartServer();
-
-    private void StartServer()
-    {
+    public ServerTestHelper() 
+    { 
         string workingDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../..", "src"));
 
-        var startInfo = new ProcessStartInfo
+        ProcessStartInfo startInfo = new()
         {
             FileName = "dotnet",
             Arguments = "run",
@@ -41,9 +39,14 @@ public class ServerTestHelper : IDisposable
             RedirectStandardError = true
         };
 
+        Task.Run(() => StartServer(startInfo));
+    }
+
+    private Task StartServer(ProcessStartInfo startInfo)
+    {
         _serverProcess = Process.Start(startInfo);
 
-        Thread.Sleep(2000);
+        return Task.CompletedTask;
     }
 
     public void Dispose()
