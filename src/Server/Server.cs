@@ -85,9 +85,24 @@ public class Server
 
         _semaphore!.Release();
 
-        string path = (context.Request.Url ?? new Uri("http://localhost")).LocalPath;
+        Verb verb = context.Request.HttpMethod switch
+        {
+            "GET" => Verb.GET,
+            "POST" => Verb.POST,
+            "PUT" => Verb.PUT,
+            "DELETE" => Verb.DELETE,
+            "OPTIONS" => Verb.OPTIONS,
+            "HEAD" => Verb.HEAD,
+            "TRACE" => Verb.TRACE,
+            "CONNECT" => Verb.CONNECT,
+            _ => throw new NotImplementedException("Failed to map verb")
+        };
 
-        ResponsePacket responsePacket = router.RouteRequest(path);
+        string path = (context.Request.Url ?? new Uri($"{(_configuration.UseHttps ? "https://" : "http://")}{_configuration.Ip}")).LocalPath;
+
+        Dictionary<string, string> urlParameters = GetUrlParameters(context.Request.Url?.ToString() ?? string.Empty);
+
+        ResponsePacket responsePacket = router.RouteRequest(verb, path, urlParameters);
 
         if (responsePacket.Status != Status.OK)
         {
@@ -99,6 +114,17 @@ public class Server
         }
         
         router.OKRespond(context.Response, responsePacket);
+    }
+
+    private Dictionary<string, string> GetUrlParameters(string url)
+    {
+        string[] urlParts = url.Split('?');
+
+        if (urlParts.Length < 2) return [];
+
+        string[] parameters = urlParts[1].Split('&');
+
+        return parameters.Select(parameter => parameter.Split('=')).ToDictionary(parameter => parameter[0], parameter => parameter[1]);
     }
 
     private string GetErrorPageRedirectPath(Status errorType)

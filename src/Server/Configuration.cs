@@ -7,4 +7,5 @@ public class Configuration
     public int Port { get; set; } = 6001;
     public string Ip { get; set; } = "localhost";
     public string StaticFilePath { get; set; } = "wwwroot";
+    public bool UseHttps { get; set; } = false;
 }

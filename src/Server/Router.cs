@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 
 public class Router
 {
+    internal List<Method> methods { get; set; } = [];
+
     private Dictionary<string, ExtensionInfo> _extensionMap = new()
     {
         {"ico", new ExtensionInfo() {Loader=LoadType.ImageLoader, ContentType="image/ico"}},
@@ -25,7 +27,7 @@ public class Router
 
     private readonly ILogger<Router> _logger;
 
-    public Router(string webSitePath)
+    internal Router(string webSitePath)
     {
         _webSitePath = webSitePath;
 
@@ -34,34 +36,59 @@ public class Router
         }).CreateLogger<Router>();
     }
 
-    public ResponsePacket RouteRequest(string path)
+    internal ResponsePacket RouteRequest(Verb verb, string path, Dictionary<string, string> urlParams)
     {
-        if (path.EndsWith('/')) path = "index.html";
+        if (path.EndsWith('/')) path = "index.html"; // TODO: meka a default index.html page and set path to the confifuted page instead.
 
         string extension = GetExtension(path);
 
-        (bool success, ExtensionInfo data) extensionInfo = TryGetExtensionInfo(extension);
+        (bool success, ExtensionInfo value) extensionInfo = TryGetExtensionInfo(extension);
+
+        Method? route = methods.Find(method => method.Path == path && method.Verb == verb);
 
         ResponsePacket responsePacket = ResponsePacket.BadRequest();
 
         if (!extensionInfo.success)
         {
-            responsePacket = new ResponsePacket() { Status = Status.UnkownType };
+            _logger.LogCritical("Failed to get extension info for {extension}", extension);
+            return responsePacket;
         }
 
         string fullPath = Path.Combine(_webSitePath, path.Replace("/", string.Empty));
 
         _logger.LogInformation("Routing request for {fullPath}", fullPath);
-
-        responsePacket = extensionInfo.data.Loader switch
-        {
-            LoadType.ImageLoader => ImageLoader(fullPath, extensionInfo.data),
-            LoadType.FileLoader => FileLoader(fullPath, extensionInfo.data),
-            LoadType.PageLoader => PageLoader(fullPath, extensionInfo.data),
-            _ => responsePacket
-        };
+        responsePacket = HandleRoute(urlParams, extensionInfo.value, route, responsePacket, fullPath);
 
         return responsePacket;
+
+        ResponsePacket ProcessResponse(ExtensionInfo extensionInfo, ResponsePacket responsePacket, string fullPath)
+        {
+            responsePacket = extensionInfo.Loader switch
+            {
+                LoadType.ImageLoader => ImageLoader(fullPath, extensionInfo),
+                LoadType.FileLoader => FileLoader(fullPath, extensionInfo),
+                LoadType.PageLoader => PageLoader(fullPath, extensionInfo),
+                _ => responsePacket
+            };
+            return responsePacket;
+        }
+
+        ResponsePacket HandleRoute(Dictionary<string, string> urlParams, ExtensionInfo extensionInfo, Method? route, ResponsePacket responsePacket, string fullPath)
+        {
+            if (route is null) return ProcessResponse(extensionInfo, responsePacket, fullPath);
+
+            string? redirect = route.HandleRequest(urlParams);
+
+            if (redirect == string.Empty)
+            {
+                responsePacket = ProcessResponse(extensionInfo, responsePacket, fullPath);
+                return responsePacket;
+            }
+                
+            responsePacket.Redirect = redirect;
+
+            return responsePacket;
+        }
     }
 
     private string GetExtension(string path)
@@ -117,7 +144,7 @@ public class Router
         return responsePacket;
     }
 
-    public void OKRespond(HttpListenerResponse response, ResponsePacket responsePacket)
+    internal void OKRespond(HttpListenerResponse response, ResponsePacket responsePacket)
     {
         response.ContentType = responsePacket.ContentType;
         response.ContentLength64 = responsePacket.Data.Length;
@@ -128,7 +155,7 @@ public class Router
         output.Close();
     }
 
-    public void ErrorRespond(HttpListenerResponse response, ResponsePacket responsePacket)
+    internal void ErrorRespond(HttpListenerResponse response, ResponsePacket responsePacket)
     {
         response.Redirect($"http://{responsePacket.Redirect}"); // TODO: fetch the ip and check for https
 

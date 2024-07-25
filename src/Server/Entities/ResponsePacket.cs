@@ -11,6 +11,6 @@ public class ResponsePacket
 
     public static ResponsePacket BadRequest()
     {
-        return new ResponsePacket { Data = Encoding.UTF8.GetBytes("Bad Request"), ContentType = "text/plain" };
+        return new ResponsePacket { Data = Encoding.UTF8.GetBytes("Bad Request"), ContentType = "text/plain", Status = Status.UnkownType };
     }
 }
