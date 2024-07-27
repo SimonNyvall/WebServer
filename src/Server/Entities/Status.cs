@@ -5,8 +5,8 @@ public enum Status : int
     OK = 200,
     ExpiredSession = 401,
     NotAuthorized = 403,
-    FileNotFound = 404,
-    PageNotFound = 400,
+    FileNotFound = 400,
+    PageNotFound = 404,
     ServerError = 500,
     UnkownType = 510
 }

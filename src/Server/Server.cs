@@ -85,18 +85,7 @@ public class Server
 
         _semaphore!.Release();
 
-        Verb verb = context.Request.HttpMethod switch
-        {
-            "GET" => Verb.GET,
-            "POST" => Verb.POST,
-            "PUT" => Verb.PUT,
-            "DELETE" => Verb.DELETE,
-            "OPTIONS" => Verb.OPTIONS,
-            "HEAD" => Verb.HEAD,
-            "TRACE" => Verb.TRACE,
-            "CONNECT" => Verb.CONNECT,
-            _ => throw new NotImplementedException("Failed to map verb")
-        };
+        Verb verb = Method.MapStringToVerb(context.Request.HttpMethod);
 
         string path = (context.Request.Url ?? new Uri($"{(_configuration.UseHttps ? "https://" : "http://")}{_configuration.Ip}")).LocalPath;
 
@@ -104,16 +93,20 @@ public class Server
 
         ResponsePacket responsePacket = router.RouteRequest(verb, path, urlParameters);
 
-        if (responsePacket.Status != Status.OK)
+        if (responsePacket.Status != Status.OK) // TODO: this is ugly
         {
             string pagePath = GetErrorPageRedirectPath(responsePacket.Status);
-            responsePacket.Redirect = pagePath;
+            responsePacket.SetRedirect(pagePath);
 
             _logger.LogCritical("Error: {statusCode} {pagePath}", responsePacket.Status, pagePath);
-            router.ErrorRespond(context.Response, responsePacket);
+
+            context.Response.StatusCode = (int)responsePacket.Status;
+            router.Respond(context.Response, responsePacket);
         }
-        
-        router.OKRespond(context.Response, responsePacket);
+        else
+        {
+            router.Respond(context.Response, responsePacket);
+        }
     }
 
     private Dictionary<string, string> GetUrlParameters(string url)

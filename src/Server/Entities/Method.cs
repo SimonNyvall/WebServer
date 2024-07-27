@@ -22,4 +22,20 @@ public class Method
     {
         return verb.ToString().ToLower();
     }
+
+    public static Verb MapStringToVerb(string verb)
+    {
+        return verb switch
+        {
+            "GET" => Verb.GET,
+            "POST" => Verb.POST,
+            "PUT" => Verb.PUT,
+            "DELETE" => Verb.DELETE,
+            "OPTIONS" => Verb.OPTIONS,
+            "HEAD" => Verb.HEAD,
+            "TRACE" => Verb.TRACE,
+            "CONNECT" => Verb.CONNECT,
+            _ => throw new NotImplementedException("Failed to map verb")
+        };
+    }
 }

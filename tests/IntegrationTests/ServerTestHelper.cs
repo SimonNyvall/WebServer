@@ -61,6 +61,4 @@ public class ServerTestHelper : IDisposable
 
         _disposed = true;
     }
-
-    
 }
