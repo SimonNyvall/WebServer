@@ -24,12 +24,14 @@ public class Router
     };
 
     private readonly string _webSitePath = string.Empty;
+    private readonly string _entryFile = "index.html";
 
     private readonly ILogger<Router> _logger;
 
-    internal Router(string webSitePath)
+    internal Router(string webSitePath, string entryFile)
     {
         _webSitePath = webSitePath;
+        _entryFile = entryFile;
 
         _logger = LoggerFactory.Create(builder => {
             builder.AddConsole();
@@ -39,14 +41,15 @@ public class Router
     internal void Respond(HttpListenerResponse response, ResponsePacket responsePacket)
     {
         response.ContentType = responsePacket.ContentType;
-        response.ContentLength64 = responsePacket.Data.Length;
+        response.ContentLength64 = responsePacket.Data!.Length;
+        response.StatusCode = (int)responsePacket.Status;
 
         Stream output = response.OutputStream;
         output.Write(responsePacket.Data, 0, responsePacket.Data.Length);
 
         if (responsePacket.Redirect != string.Empty)
         {
-            response.Redirect(responsePacket.Redirect);
+            response.Redirect(responsePacket.Redirect!);
         }
 
         output.Close();
@@ -54,7 +57,7 @@ public class Router
 
     internal ResponsePacket RouteRequest(Verb verb, string path, Dictionary<string, string> urlParams)
     {
-        if (path.EndsWith('/')) path = "index.html"; // TODO: meka a default index.html page and set path to the confifuted page instead.
+        if (path.EndsWith('/')) path = _entryFile;
 
         string extension = TryGetExtension(path);
 
@@ -69,12 +72,12 @@ public class Router
             _logger.LogCritical("Failed to get extension info for {extension}", extension);
 
             path = "ErrorPages/UnkownType.html";
-            responsePacket.SetStatus(Status.PageNotFound);
+            responsePacket.SetStatus(Status.UnkownType);
 
             return ProcessResponse(extensionInfo, responsePacket, $"{_webSitePath}/{path}");
         }
 
-        string fullPath = Path.Combine(_webSitePath, path.Replace("/", string.Empty));
+        string fullPath = Path.Combine(_webSitePath, path.Trim('/'));
 
         _logger.LogInformation("Routing request for {fullPath}", fullPath);
         responsePacket = HandleRoute(urlParams, extensionInfo, route, responsePacket, fullPath);
@@ -137,8 +140,6 @@ public class Router
             return (false, new ExtensionInfo());
         }
 
-        if (extension == string.Empty) return (false, extensionInfo);
-
         return (true, extensionInfo);
     }
 
@@ -159,16 +160,53 @@ public class Router
 
     private ResponsePacket PageLoader(string path, ExtensionInfo extensionInfo, ResponsePacket responsePacket)
     {
-        return FileLoader(path, extensionInfo, responsePacket);
+        try
+        {
+            responsePacket = Loader(path, extensionInfo, responsePacket);
+        }
+        catch
+        {
+            responsePacket.SetStatus(Status.PageNotFound);
+
+            _logger.LogCritical("Failed to load page {path}", path);
+        }
+
+        return responsePacket;
     }
 
     private ResponsePacket FileLoader(string path, ExtensionInfo extensionInfo, ResponsePacket responsePacket)
     {
-        string text = File.ReadAllText(path);
+        try
+        {
+            responsePacket = Loader(path, extensionInfo, responsePacket);
+        }
+        catch
+        {
+            responsePacket.SetStatus(Status.FileNotFound);
+
+            _logger.LogCritical("Failed to load file {path}", path);
+        }
+
+        return responsePacket;
+    }
+
+    private static ResponsePacket Loader(string path, ExtensionInfo extensionInfo, ResponsePacket responsePacket)
+    {
+        string text = string.Empty;
+
+        try
+        {
+            text = File.ReadAllText(path);
+        }
+        catch
+        {
+            throw new Exception("Failed to read file");
+        }
 
         responsePacket
             .SetData(Encoding.UTF8.GetBytes(text))
-            .SetContentType(extensionInfo.ContentType);
+            .SetContentType(extensionInfo.ContentType)
+            .SetStatus(Status.OK);
 
         return responsePacket;
     }

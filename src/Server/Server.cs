@@ -24,7 +24,7 @@ public class Server
     {
         SetUpConfiguration(configure);
 
-        Router router = new(_configuration.StaticFilePath);
+        Router router = new(_configuration.StaticFilePath, _configuration.EntryFile);
 
         IPAddress[] localhostIPs = GetLocalHostIPs();
         HttpListener listener = GetInitializedListener(localhostIPs);
@@ -93,23 +93,18 @@ public class Server
 
         ResponsePacket responsePacket = router.RouteRequest(verb, path, urlParameters);
 
-        if (responsePacket.Status != Status.OK) // TODO: this is ugly
+        if (responsePacket.Status != Status.OK)
         {
             string pagePath = GetErrorPageRedirectPath(responsePacket.Status);
             responsePacket.SetRedirect(pagePath);
 
             _logger.LogCritical("Error: {statusCode} {pagePath}", responsePacket.Status, pagePath);
-
-            context.Response.StatusCode = (int)responsePacket.Status;
-            router.Respond(context.Response, responsePacket);
         }
-        else
-        {
-            router.Respond(context.Response, responsePacket);
-        }
+        
+        router.Respond(context.Response, responsePacket);
     }
 
-    private Dictionary<string, string> GetUrlParameters(string url)
+    private static Dictionary<string, string> GetUrlParameters(string url)
     {
         string[] urlParts = url.Split('?');
 
@@ -120,7 +115,7 @@ public class Server
         return parameters.Select(parameter => parameter.Split('=')).ToDictionary(parameter => parameter[0], parameter => parameter[1]);
     }
 
-    private string GetErrorPageRedirectPath(Status errorType)
+    private static string GetErrorPageRedirectPath(Status errorType)
     {
         return errorType switch
         {

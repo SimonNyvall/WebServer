@@ -8,4 +8,5 @@ public class Configuration
     public string Ip { get; set; } = "localhost";
     public string StaticFilePath { get; set; } = "wwwroot";
     public bool UseHttps { get; set; } = false;
+    public string EntryFile { get; set; } = "index.html";
 }
