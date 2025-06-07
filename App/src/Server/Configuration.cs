@@ -1,4 +1,4 @@
-namespace Webserver;
+namespace App.Server;
 
 public class Configuration
 {

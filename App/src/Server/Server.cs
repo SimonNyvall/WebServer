@@ -1,10 +1,9 @@
-namespace Webserver;
-
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
+using App.Server.Models;
 using Microsoft.Extensions.Logging;
-using Webserver.Models;
+
+namespace App.Server;
 
 public class Server
 {
@@ -15,7 +14,8 @@ public class Server
 
     public Server()
     {
-        _logger = LoggerFactory.Create(builder => {
+        _logger = LoggerFactory.Create(builder =>
+        {
             builder.AddConsole();
         }).CreateLogger<Server>();
     }
@@ -29,10 +29,10 @@ public class Server
         IPAddress[] localhostIPs = GetLocalHostIPs();
         HttpListener listener = GetInitializedListener(localhostIPs);
 
-        _logger.LogInformation("Starting server");
+        _logger.LogStartingServerMessage();
 
         listener.Start();
-        _logger.LogInformation("Server started");
+        _logger.LogServerStartedMessage();
 
         _ = Task.Run(() => RunServer(listener, router));
     }
@@ -61,7 +61,7 @@ public class Server
 
         foreach (IPAddress ip in localhostIPs)
         {
-            _logger.LogInformation("Listening on {ip}:{port}", ip, port);
+            _logger.LogListeningOnMessage(ip.ToString(), port);
             listener.Prefixes.Add($"http://{ip}:{port}/");
         }
 
@@ -98,9 +98,9 @@ public class Server
             string pagePath = GetErrorPageRedirectPath(responsePacket.Status);
             responsePacket.SetRedirect(pagePath);
 
-            _logger.LogCritical("Error: {statusCode} {pagePath}", responsePacket.Status, pagePath);
+            _logger.LogErrorPathMessage(responsePacket.Status, pagePath);
         }
-        
+
         router.Respond(context.Response, responsePacket);
     }
 
@@ -120,11 +120,11 @@ public class Server
         return errorType switch
         {
             Status.ExpiredSession => "/ErrorPages/ExpiredSession.html",
-            Status.NotAuthorized =>  "/ErrorPages/NotAuthorized.html",
-            Status.FileNotFound =>   "/ErrorPages/FileNotFound.html",
-            Status.PageNotFound =>   "/ErrorPages/PageNotFound.html",
-            Status.ServerError =>    "/ErrorPages/ServerError.html",
-            Status.UnkownType =>     "/ErrorPages/UnkownType.html",
+            Status.NotAuthorized => "/ErrorPages/NotAuthorized.html",
+            Status.FileNotFound => "/ErrorPages/FileNotFound.html",
+            Status.PageNotFound => "/ErrorPages/PageNotFound.html",
+            Status.ServerError => "/ErrorPages/ServerError.html",
+            Status.UnkownType => "/ErrorPages/UnkownType.html",
             _ => throw new NotImplementedException("Failed to map redirect path")
         };
     }

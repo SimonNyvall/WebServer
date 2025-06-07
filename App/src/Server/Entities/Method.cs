@@ -1,4 +1,4 @@
-namespace Webserver.Models;
+namespace App.Server.Models;
 
 public enum Verb
 {

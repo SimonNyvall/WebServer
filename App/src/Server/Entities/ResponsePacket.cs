@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Webserver.Models;
+namespace App.Server.Models;
 
 public class ResponsePacket
 {

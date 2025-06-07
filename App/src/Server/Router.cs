@@ -1,14 +1,13 @@
-namespace Webserver;
-
-using System.IO;
 using System.Net;
 using System.Text;
-using Webserver.Models;
+using App.Server.Models;
 using Microsoft.Extensions.Logging;
+
+namespace App.Server;
 
 public class Router
 {
-    internal List<Method> methods { get; set; } = [];
+    internal List<Method> Methods { get; set; } = [];
 
     private Dictionary<string, ExtensionInfo> _extensionMap = new()
     {
@@ -20,7 +19,7 @@ public class Router
         {"html", new ExtensionInfo() {Loader=LoadType.PageLoader, ContentType="text/html"}},
         {"css", new ExtensionInfo() {Loader=LoadType.FileLoader, ContentType="text/css"}},
         {"js", new ExtensionInfo() {Loader=LoadType.FileLoader, ContentType="text/javascript"}},
-        {"", new ExtensionInfo() {Loader=LoadType.PageLoader, ContentType="text/html"}},
+        {string.Empty, new ExtensionInfo() {Loader=LoadType.PageLoader, ContentType="text/html"}},
     };
 
     private readonly string _webSitePath = string.Empty;
@@ -33,7 +32,8 @@ public class Router
         _webSitePath = webSitePath;
         _entryFile = entryFile;
 
-        _logger = LoggerFactory.Create(builder => {
+        _logger = LoggerFactory.Create(builder =>
+        {
             builder.AddConsole();
         }).CreateLogger<Router>();
     }
@@ -63,13 +63,13 @@ public class Router
 
         (bool success, ExtensionInfo extensionInfo) = TryGetExtensionInfo(extension);
 
-        Method? route = methods.Find(method => method.Path == path && method.Verb == verb);
+        Method? route = Methods.Find(method => method.Path == path && method.Verb == verb);
 
         ResponsePacket responsePacket = ResponsePacket.Empty();
 
         if (!success)
         {
-            _logger.LogCritical("Failed to get extension info for {extension}", extension);
+            _logger.LogExtensionErrorMessage(extension);    
 
             path = "ErrorPages/UnkownType.html";
             responsePacket.SetStatus(Status.UnkownType);
@@ -79,7 +79,7 @@ public class Router
 
         string fullPath = Path.Combine(_webSitePath, path.Trim('/'));
 
-        _logger.LogInformation("Routing request for {fullPath}", fullPath);
+        _logger.LogRoutingRequestMessage(fullPath);
         responsePacket = HandleRoute(urlParams, extensionInfo, route, responsePacket, fullPath);
 
         return responsePacket;
@@ -97,7 +97,7 @@ public class Router
             return responsePacket;
         }
 
-        responsePacket.SetRedirect(redirect); 
+        responsePacket.SetRedirect(redirect);
 
         return responsePacket;
     }
@@ -127,7 +127,7 @@ public class Router
         }
         catch (IndexOutOfRangeException)
         {
-            _logger.LogCritical("Failed to get extension for {path}", path);
+            _logger.LogFailedToGetPathMessage(path);
             return string.Empty;
         }
     }
@@ -136,7 +136,7 @@ public class Router
     {
         if (!_extensionMap.TryGetValue(extension, out ExtensionInfo extensionInfo))
         {
-            _logger.LogCritical("Failed to get extension info for {extension}", extension);
+            _logger.LogExtensionErrorMessage(extension);
             return (false, new ExtensionInfo());
         }
 
@@ -168,7 +168,7 @@ public class Router
         {
             responsePacket.SetStatus(Status.PageNotFound);
 
-            _logger.LogCritical("Failed to load page {path}", path);
+            _logger.LogFailedToLoadPageMessage(path);
         }
 
         return responsePacket;
@@ -185,6 +185,7 @@ public class Router
             responsePacket.SetStatus(Status.FileNotFound);
 
             _logger.LogCritical("Failed to load file {path}", path);
+            _logger.LogFailedToLoadFileMessage(path);
         }
 
         return responsePacket;
