@@ -27,10 +27,10 @@ public static class LoggerMessageDefinitions
         LoggerMessage.Define<string>(LogLevel.Critical, new EventId(7, nameof(Router)), "Failed to get extension for {path}");
 
     private static readonly Action<ILogger, string, Exception?> FailedToLoadPageMessageDefinition =
-        LoggerMessage.Define<string>(LogLevel.Critical, new EventId(7, nameof(Router)), "Failed to load page for {path}");
+        LoggerMessage.Define<string>(LogLevel.Critical, new EventId(8, nameof(Router)), "Failed to load page for {path}");
 
     private static readonly Action<ILogger, string, Exception?> FailedToLoadFileMessageDefinition =
-        LoggerMessage.Define<string>(LogLevel.Critical, new EventId(7, nameof(Router)), "Failed to load file for {path}");
+        LoggerMessage.Define<string>(LogLevel.Critical, new EventId(9, nameof(Router)), "Failed to load file for {path}");
 
     public static void LogStartingServerMessage(this ILogger logger) =>
         StartingServerMessageDefinition(logger, null);
